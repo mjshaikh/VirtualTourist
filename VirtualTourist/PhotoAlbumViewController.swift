@@ -137,9 +137,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             
             saveContext()
             
-            print("FRC count: \(fetchedResultsController.fetchedObjects?.count)")
-            
-            
             let boundingBox = bboxString(latitude: pin.latitude, longitude: pin.longitude)
             
             if pin.currentPage <= pin.totalPages {
@@ -151,7 +148,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
                                                                           completion: { (success, error) in
                     
                     if success {
-                        
                         print("Current page : \(pin.currentPage)")
                         print("Total pages : \(pin.totalPages)")
                         
@@ -193,8 +189,6 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     /* This function uses a visible flag parameter to either highlight or unhighlight the item at specific index */
     
     func highlightCell(cell : PhotoCell, visible: Bool) {
-        
-//        let cell = collectionView.cellForItem(at: indexPath) as! PhotoCell
         
         if visible {
             cell.layer.borderWidth = 3.0
@@ -287,7 +281,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         case .update:
             updateIndexPaths.append(indexPath!)
         case .move:
-            print("We aren't doing moves so this should never be seen.")
+            print("Not needed")
         }
     }
     

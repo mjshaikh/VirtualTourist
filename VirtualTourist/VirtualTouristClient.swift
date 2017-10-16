@@ -42,7 +42,7 @@ class VirtualTouristClient {
                     
                     for result in json["photos"]["photo"].arrayValue {
                         let title = result["title"].stringValue
-                        let urlString = result["url_m"].stringValue
+                        let urlString = result["url_q"].stringValue
                         self.downloadPhoto(urlString: urlString, completion: { (photoData, error) in
                             
                             guard let photoData = photoData else{

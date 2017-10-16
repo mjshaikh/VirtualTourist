@@ -64,7 +64,7 @@ struct FlickrParameterValues {
     static let APIKey = "eb76169211aa651ae093ef6333ab8c64"
     static let ResponseFormat = "json"
     static let DisableJSONCallback = "1" /* 1 means "yes" */
-    static let MediumURL = "url_m"
+    static let SmallURL = "url_q"
     static let UseSafeSearch = "1"
     static let ResultPerPage = "21"
 }
@@ -79,7 +79,7 @@ func buildFlickrURL(bbox: String, page: Int) -> URL {
         FlickrParameterKeys.Page : page,
         FlickrParameterKeys.PerPage : FlickrParameterValues.ResultPerPage,
         FlickrParameterKeys.SafeSearch: FlickrParameterValues.UseSafeSearch,
-        FlickrParameterKeys.Extras: FlickrParameterValues.MediumURL,
+        FlickrParameterKeys.Extras: FlickrParameterValues.SmallURL,
         FlickrParameterKeys.Format: FlickrParameterValues.ResponseFormat,
         FlickrParameterKeys.NoJSONCallback: FlickrParameterValues.DisableJSONCallback
     ]

@@ -18,14 +18,40 @@ class VirtualTouristClient {
     private init() {}
     
     
-    func fetchPhotosForLatLong(url: URL, pin: Pin, completion: @escaping (_ success: Bool, _ error: Error?) -> Void) {
+    func initiateFlickrDownload(pin: Pin, completion: @escaping (_ success: Bool, _ photos: [Photo]?, _ error: Error?) -> Void){
+        
+        let boundingBox = bboxString(latitude: pin.latitude, longitude: pin.longitude)
+        
+        let url = buildFlickrURL(bbox: boundingBox, page: pin.currentPage)
+        
+        // Download photo details for lat/long on first page for 21 photos
+        photoSearchForLatLong(url: url, pin: pin,completion: {
+            (success, photos, error) in
+            
+            if success {
+                //Fetch the Pins to confirm if they are indeed saved in CoreData
+                fetchAllPins()
+                
+                // Fetch the Photos to confirm if they are indeed saved in CoreData
+                fetchAllPhotos()
+
+                completion(true, photos, nil)
+            }
+            else{   // Error
+                completion(false, nil, error)
+            }
+        })
+    }
+    
+    
+    func photoSearchForLatLong(url: URL, pin: Pin, completion: @escaping (_ success: Bool, _ photos: [Photo]?, _ error: Error?) -> Void) {
         
         Alamofire.request(url, method: .get)
-                .validate()
-                .responseJSON { (response) -> Void in
+            .validate()
+            .responseJSON { (response) -> Void in
                 
-                print("Request: \(response.request!)")
-//                print("Response: \(response.response!)")
+                //print("Request: \(response.request!)")
+                //print("Response: \(response.response!)")
                 
                 switch response.result {
                     
@@ -43,24 +69,20 @@ class VirtualTouristClient {
                     for result in json["photos"]["photo"].arrayValue {
                         let title = result["title"].stringValue
                         let urlString = result["url_q"].stringValue
-                        self.downloadPhoto(urlString: urlString, completion: { (photoData, error) in
-                            
-                            guard let photoData = photoData else{
-                                print("No photoData : \(error)")
-                                return
-                            }
-                            
-                            let photoObject = Photo(title: title, imageData: photoData, pin: pin, context: appDelegate.stack.mainContext)
-                            photos.append(photoObject)
-                        })
+                        
+                        let photoObject = Photo(title: title, imageUrl: urlString, pin: pin, context: appDelegate.stack.mainContext)
+                        photos.append(photoObject)
+                        
+                        // Downloaded photo is stored in CoreData
+                        saveContext()
+                        
+                        if json["photos"]["photo"].count == photos.count{
+                            completion(true, photos, nil)
+                        }
                     }
                     
-                    saveContext()
-                    
-                    completion(true, nil)
-                    
                 case .failure(let error):
-                    completion(false, error)
+                    completion(false, nil, error)
                 }
         }
     }

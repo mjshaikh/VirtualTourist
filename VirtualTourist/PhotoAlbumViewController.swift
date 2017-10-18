@@ -19,6 +19,9 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     
     @IBOutlet weak var button: UIButton!
     
+    @IBOutlet weak var noPhotosLabel: UILabel!
+
+    
     var pin: Pin?
     
     var isNewPhotoSetRequest = true
@@ -87,6 +90,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         collectionView.allowsMultipleSelection = true
         
+        noPhotosLabel.isHidden = true
+        
         // The lat and long are used to create a CLLocationCoordinates2D instance.
         let coordinate = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
         
@@ -96,8 +101,8 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         mapView.addAnnotation(annotation)
         centerMapOnLocation(coordinate)
-
     }
+
     
     /* This function takes a CLLocationCoordinate2D and zoom in and centers on the map location */
     
@@ -132,31 +137,33 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
             if let photoObjects = fetchedResultsController.fetchedObjects {
                 for photo in photoObjects {
                     appDelegate.stack.mainContext.delete(photo)
+                    
+                    // Save the deletion changes in CoreData
+                    saveContext()
                 }
             }
-            
-            saveContext()
-            
-            let boundingBox = bboxString(latitude: pin.latitude, longitude: pin.longitude)
-            
+                        
             if pin.currentPage <= pin.totalPages {
                 
-                let url = buildFlickrURL(bbox: boundingBox, page: pin.currentPage)
+                noPhotosLabel.isHidden = true
                 
-                VirtualTouristClient.sharedInstance.fetchPhotosForLatLong(url: url,
-                                                                          pin: pin,
-                                                                          completion: { (success, error) in
+                print("Downloading new photo set...")
+                
+                // Initiate flickr download request for the Pin
+                VirtualTouristClient.sharedInstance.initiateFlickrDownload(pin: pin, completion: {
+                    (success, photos, error) in
                     
-                    if success {
-                        print("Current page : \(pin.currentPage)")
-                        print("Total pages : \(pin.totalPages)")
-                        
-                        saveContext()
+                    if success{
+                        print("Download succeeded")
                     }
-                    else{   // Error
-                        print("Error while fetching photos: \(error?.localizedDescription)")
+                    else{
+                        print("Error while searching photos: \(error?.localizedDescription)")
                     }
                 })
+            }
+            else{
+                // Otherwise no more photos available to download
+                noPhotosLabel.isHidden = false
             }
         }
     }
@@ -182,6 +189,7 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         // Clear the photoIndexPaths Array
         photoIndexPaths.removeAll()
         
+        // Save the deletion changes in CoreData
         saveContext()
     }
     
@@ -217,17 +225,41 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "photoCell", for: indexPath) as! PhotoCell
         
+        // Clear previous loaded image from cell
+        cell.imageView.image = nil
+        
+        // Save the imageurl inside cell
+        cell.imageURL = photoObject.imageUrl
+        
         if let photo = photoObject.imageData {   // If image data exists then set imageView with photoData
             cell.activityIndicator.stopAnimating()
             //print("photoObject cache : \(photoObject)")
             cell.imageView.image = UIImage(data: photo as Data)
         }
-        else{
-            // Set placeholder image
-            cell.imageView.image = UIImage(named: "placeholder")
+        else{   // Otherwise download the images from URL
             
-            cell.activityIndicator.startAnimating()
-            
+            if let imgUrl = cell.imageURL, imgUrl == photoObject.imageUrl {
+                
+                // Set placeholder image
+                cell.imageView.image = UIImage(named: "placeholder")
+                
+                cell.activityIndicator.startAnimating()
+                
+                VirtualTouristClient.sharedInstance.downloadPhoto(urlString: imgUrl, completion: { (photoData, error) in
+                    
+                    guard let photoData = photoData else{
+                        print("No photoData : \(error)")
+                        return
+                    }
+                    
+//                    cell.imageView.image = UIImage(data: photoData)
+                    
+                    photoObject.imageData = photoData
+                    
+                    // Downloaded photo is stored in CoreData
+                    saveContext()
+                })
+            }
         }
         
         if cell.isSelected{
@@ -286,11 +318,13 @@ class PhotoAlbumViewController: UIViewController, UICollectionViewDataSource, UI
     }
     
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        collectionView.performBatchUpdates({
-            self.collectionView.insertItems(at: self.insertIndexPaths)
-            self.collectionView.deleteItems(at: self.deleteIndexPaths)
-            self.collectionView.reloadItems(at: self.updateIndexPaths)
-        }, completion: nil)
+        UIView.performWithoutAnimation {
+            collectionView.performBatchUpdates({
+                self.collectionView.insertItems(at: self.insertIndexPaths)
+                self.collectionView.deleteItems(at: self.deleteIndexPaths)
+                self.collectionView.reloadItems(at: self.updateIndexPaths)
+            }, completion: nil)
+        }
     }
     
 }

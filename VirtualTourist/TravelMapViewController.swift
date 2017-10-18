@@ -29,41 +29,26 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
         
         appDelegate.travelMapVC = self
         
-        // Create a fetchrequest
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Pin")
-        
-        do {
-            let results = try appDelegate.stack.mainContext.fetch(fetchRequest)
-            let pins = results as! [Pin]
+        // Fetch all Pins
+        if let pins = fetchAllPins(){
             
             // Add annotations pins on the map
             addAnnotationToMap(pins)
             
             // Restore the last known map state
             restoreMapState()
-            
-        } catch let error as NSError {
-            print("Could not fetch \(error), \(error.userInfo)")
+
         }
         
-        
-        let fetchPhotoRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
-        
-        do {
-            let results = try appDelegate.stack.mainContext.fetch(fetchPhotoRequest)
-            let photos = results
-            
-            print("Total photo objects fetched: \(photos.count)")
-            
-        } catch let error as NSError {
-            print("Could not fetch \(error), \(error.userInfo)")
-        }
+        // Fetch and display total Photos in CoreData
+        fetchAllPhotos()
     }
     
     
     @IBAction func downloadPhotos(_ sender: UIBarButtonItem) {
         
     }
+
     
     
     func restoreMapState(){
@@ -121,34 +106,13 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
             
             let pin = Pin(latitude: Double(coordinate.latitude), longitude: Double(coordinate.longitude), totalPages: 0, currentPage: 0, context: appDelegate.stack.mainContext)
             
-            saveContext()
             print("Just created a pin with latitude: \(pin.latitude) and longitude: \(pin.longitude)")
             
-            // download photos right away for the selected Pin
-            
-            print(" Pin object don't have photos. Downloading now...")
-            
-            let boundingBox = bboxString(latitude: pin.latitude, longitude: pin.longitude)
-            
-            // Fetch photos starting from page # 1
-            pin.currentPage = 1
-            
-            let url = buildFlickrURL(bbox: boundingBox, page: pin.currentPage)
-            
-            // Download photo details for lat/long on first page for 21 photos
-            VirtualTouristClient.sharedInstance.fetchPhotosForLatLong(url: url, pin: pin,completion: {
-                (success, error) in
-                
-                if success {
-                    print("Current page : \(pin.currentPage)")
-                    print("Total pages : \(pin.totalPages)")
-                }
-                else{   // Error
-                    print("Error while fetching photos: \(error?.localizedDescription)")
-                }
-            })
+            // Pin is stored in CoreData
+            saveContext()
         }
     }
+
     
     
     @IBAction func toggleEditMode(_ barButton: UIBarButtonItem) {
@@ -247,8 +211,6 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
         let latitude = view.annotation?.coordinate.latitude
         let longitude = view.annotation?.coordinate.longitude
         
-        print("pin selected with latitude: \(latitude!) and longitude: \(longitude!)")
-        
         let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
         let pred = NSPredicate(format: "latitude = %lf AND longitude = %lf", latitude!, longitude!)
         fetchRequest.predicate = pred
@@ -260,7 +222,6 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
         do {
             let results = try appDelegate.stack.mainContext.fetch(fetchRequest)
             pinsArray = results
-            //pin = pins.first
             
         } catch let error as NSError {
             print("Could not fetch \(error), \(error.userInfo)")
@@ -271,14 +232,29 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
             return
         }
         
-        if editMode{    // If pin is clicked in edit mode then remove it from the CoreData and Map
+        if editMode{
             
+            // If pin is clicked in edit mode then remove it from the CoreData and Map
             appDelegate.stack.mainContext.delete(pinObject)
             mapView.removeAnnotation(view.annotation!)
+            
+            print("pin deleted with latitude: \(latitude!) and longitude: \(longitude!)")
+            
+            // Save the deletion changes in CoreData
+            saveContext()
+            
+            //Fetch the Pins to confirm changes if is saved in CoreData
+            fetchAllPins()
+            
+            // Fetch the Photos to confirm changes if is saved in CoreData
+            fetchAllPhotos()
+            
             
         }
         else{   // Otherwise open the Photo Album for the selected Pin
             
+            print("pin selected with latitude: \(latitude!) and longitude: \(longitude!)")
+
             // If Pin object has photos in CoreData just load them
             if let pinPhotos = pinObject.photos, pinPhotos.count > 0 {
                 print("Pin object has \(pinPhotos.count) photos")
@@ -287,8 +263,28 @@ class TravelMapViewController: UIViewController, MKMapViewDelegate {
                 
                 self.performSegue(withIdentifier: "pinSegue", sender: pinObject)
             }
-            else{
-                fatalError("Oops! Shouldn't enter this block.")
+            else{   // Otherwise the pin object has no photos so download them once again
+                
+                print(" Pin object don't have photos. Downloading now...")
+                
+                // Fetch photos starting from page # 1
+                pinObject.currentPage = 1
+                
+                // Initiate flickr download request for the Pin
+                VirtualTouristClient.sharedInstance.initiateFlickrDownload(pin: pinObject, completion: {
+                    (success, photos, error) in
+                    
+                    if success{
+                        print("Download succeeded")
+                        
+                        mapView.deselectAnnotation(view.annotation, animated: false)
+                        
+                        self.performSegue(withIdentifier: "pinSegue", sender: pinObject)
+                    }
+                    else{
+                        print("Error while searching photos: \(error?.localizedDescription)")
+                    }
+                })
             }
         }
         

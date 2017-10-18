@@ -131,6 +131,13 @@
                                     <size key="footerReferenceSize" width="0.0" height="0.0"/>
                                     <inset key="sectionInset" minX="5" minY="5" maxX="5" maxY="5"/>
                                 </collectionViewFlowLayout>
+                                <label key="backgroundView" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="No more photos available" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="aoC-Kz-4fI">
+                                    <rect key="frame" x="0.0" y="0.0" width="375" height="423"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES" flexibleMaxY="YES"/>
+                                    <fontDescription key="fontDescription" type="system" pointSize="18"/>
+                                    <nil key="textColor"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
                                 <cells>
                                     <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="photoCell" id="04G-7i-HgY" customClass="PhotoCell" customModule="VirtualTourist" customModuleProvider="target">
                                         <rect key="frame" x="5" y="5" width="50" height="50"/>
@@ -186,6 +193,7 @@
                         <outlet property="button" destination="geT-3h-ePU" id="3Q9-ol-BdS"/>
                         <outlet property="collectionView" destination="Ppa-4w-Fdx" id="ghF-6K-gEK"/>
                         <outlet property="mapView" destination="FUR-cc-dCK" id="l0b-vF-eoL"/>
+                        <outlet property="noPhotosLabel" destination="aoC-Kz-4fI" id="oA2-sv-DwY"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="zR4-ht-iGH" userLabel="First Responder" sceneMemberID="firstResponder"/>

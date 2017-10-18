@@ -17,11 +17,11 @@ public class Photo: NSManagedObject {
         super.init(entity: entity, insertInto: context)
     }
     
-    convenience init(title: String, imageData: Data, pin: Pin, context: NSManagedObjectContext) {
+    convenience init(title: String, imageUrl: String, pin: Pin, context: NSManagedObjectContext) {
         if let ent = NSEntityDescription.entity(forEntityName: "Photo", in: context){
             self.init(entity:ent, insertInto: context)
             self.title = title
-            self.imageData = imageData
+            self.imageUrl = imageUrl
             self.pin = pin
         }
         else{

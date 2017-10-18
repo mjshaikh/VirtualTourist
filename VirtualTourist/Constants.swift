@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CoreData
 import UIKit
 
 let APIKey = "eb76169211aa651ae093ef6333ab8c64"
@@ -16,10 +17,41 @@ var appDelegate: AppDelegate {
 }
 
 func saveContext(){
+   appDelegate.stack.save()
+}
+
+
+func fetchAllPins() -> [Pin]?{
+    
+    let fetchPhotoRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+    
     do {
-        try appDelegate.stack.save()
+        let results = try appDelegate.stack.mainContext.fetch(fetchPhotoRequest)
+        let pins = results
+        
+        print("Total Pin objects in CoreData: \(pins.count)")
+        
+        return pins
+        
     } catch let error as NSError {
-        print("Could not save. \(error), \(error.userInfo)")
+        print("Could not fetch \(error), \(error.userInfo)")
+    }
+    
+    return nil
+}
+
+func fetchAllPhotos(){
+    
+    let fetchPhotoRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
+    
+    do {
+        let results = try appDelegate.stack.mainContext.fetch(fetchPhotoRequest)
+        let photos = results
+        
+        print("Total Photo objects in CoreData: \(photos.count)")
+        
+    } catch let error as NSError {
+        print("Could not fetch \(error), \(error.userInfo)")
     }
 }
 
